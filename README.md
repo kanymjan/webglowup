@@ -63,6 +63,56 @@ npm run dev
 Откройте `http://localhost:5173/admin`, введите admin-ключ (тот же, что в `ADMIN_KEY` бэкенда) —
 там можно посмотреть заявки и создавать/редактировать/удалять посты блога.
 
+## Бесплатный деплой (Render + Vercel + Neon)
+
+Самый простой способ выложить сайт без своего сервера. Repo уже на GitHub: `kanymjan/webglowup`.
+
+### 1. База данных — Neon (бесплатный постоянный Postgres)
+
+Бесплатные диски на Render не сохраняются между рестартами, поэтому файловую H2 в проде заменяем
+на настоящую БД:
+
+1. Зайдите на **neon.tech**, зарегистрируйтесь, создайте проект `webglowup`.
+2. В дашборде найдите Connection string, из него возьмите: хост, имя базы, юзера, пароль.
+3. JDBC-адрес будет выглядеть так: `jdbc:postgresql://ВАШ_ХОСТ/ВАША_БАЗА?sslmode=require`.
+
+### 2. Бэкенд — Render
+
+1. **render.com** → New → Web Service → подключите репозиторий `kanymjan/webglowup`.
+2. Root Directory: `backend`. Environment: **Docker** (подхватит `backend/Dockerfile`). Instance Type: **Free**.
+3. Добавьте переменные окружения (Environment → Add Environment Variable):
+
+| Переменная | Значение |
+|---|---|
+| `ADMIN_KEY` | свой секретный ключ для `/admin` |
+| `CORS_ALLOWED_ORIGINS` | пока `*`, поменяем на адрес Vercel после шага 3 |
+| `TELEGRAM_BOT_TOKEN` | токен вашего бота |
+| `TELEGRAM_CHAT_ID` | ваш chat_id |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://ВАШ_ХОСТ/ВАША_БАЗА?sslmode=require` (из Neon) |
+| `SPRING_DATASOURCE_USERNAME` | юзер из Neon |
+| `SPRING_DATASOURCE_PASSWORD` | пароль из Neon |
+| `SPRING_DATASOURCE_DRIVER_CLASS_NAME` | `org.postgresql.Driver` |
+
+4. Deploy. Через пару минут получите адрес вида `https://webglowup-backend.onrender.com`.
+
+На бесплатном тарифе сервис засыпает через 15 минут простоя — первый запрос после паузы
+выполняется 30–60 секунд, дальше работает быстро.
+
+### 3. Фронтенд — Vercel
+
+1. **vercel.com** → New Project → импортируйте тот же репозиторий `kanymjan/webglowup`.
+2. Root Directory: `frontend` (Vercel сам распознает Vite).
+3. Environment Variables: `VITE_API_URL` = адрес бэкенда из Render (`https://webglowup-backend.onrender.com`).
+4. Deploy. Получите адрес вида `https://webglowup.vercel.app`.
+
+### 4. Последний шаг
+
+Вернитесь в Render → Environment → поменяйте `CORS_ALLOWED_ORIGINS` на адрес из Vercel
+(`https://webglowup.vercel.app`) → сохраните, сервис передеплоится сам.
+
+Готово — сайт живёт на `https://webglowup.vercel.app`, бэкенд и бот работают через Render.
+Домен позже можно подключить и в Vercel (фронт), и в Render (бэкенд).
+
 ## Продакшн: бэкенд должен работать постоянно (24/7)
 
 Java-бэкенд — обычный долгоживущий процесс, а не serverless-функция. Два варианта запуска:
